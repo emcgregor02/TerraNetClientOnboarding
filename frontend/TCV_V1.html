@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraNet Field Monitoring</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; background: #f5f7fa; }
+
+    .header { background: #101230; color: white; padding: 20px 40px; }
+    .header h1 { font-size: 28px; }
+    .header p { margin-top: 5px; font-size: 14px; opacity: 0.9; }
+
+    .map-section { position: relative; height: 700px; background: #fff; border-bottom: 3px solid #4DBB7F; }
+    #map { height: 100%; width: 100%; background: #e8e8e8; }
+
+    .map-controls {
+      position: absolute; top: 20px; left: 20px; z-index: 1000;
+      background: white; padding: 16px; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15); max-width: 350px;
+    }
+    .map-controls h3 { margin-bottom: 12px; font-size: 16px; }
+    .map-controls label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
+    .map-controls input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; }
+    .map-controls button {
+      width: 100%; padding: 10px; background: #4DBB7F; color: white;
+      border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px;
+    }
+    .map-controls button:hover { background: #3da969; }
+    .map-controls button.secondary { background: #101230; }
+
+    .spectral-controls {
+      position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+      background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .spectral-controls h4 { margin-bottom: 8px; font-size: 13px; }
+    .spectral-toggles { display: flex; gap: 12px; }
+    .spectral-toggles label { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 40px; }
+    .content-grid { display: grid; grid-template-columns: 1fr 380px; gap: 30px; }
+
+    .fields-section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .fields-section h2 { margin-bottom: 20px; font-size: 22px; }
+
+    .field-card {
+      background: #f9fafb; border: 2px solid #e3e6ea; border-radius: 10px;
+      padding: 20px; margin-bottom: 16px; transition: all 0.2s;
+    }
+    .field-card:hover { border-color: #4DBB7F; box-shadow: 0 4px 12px rgba(77, 187, 127, 0.15); }
+    .field-card.premium { border-color: #FFD700; background: linear-gradient(135deg, #fffef7 0%, #fffdf0 100%); }
+
+    .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .field-header h3 { font-size: 18px; }
+    .field-header .acres { font-size: 14px; color: #666; font-weight: 600; }
+    .field-actions { display: flex; gap: 8px; }
+    .field-actions button { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-edit { background: #5987AD; color: white; }
+    .btn-delete { background: #dc3545; color: white; }
+
+    .tier-selection { display: flex; gap: 12px; margin-bottom: 16px; }
+    .tier-option {
+      flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px;
+      cursor: pointer; text-align: center; transition: all 0.2s;
+    }
+    .tier-option:hover { border-color: #4DBB7F; }
+    .tier-option.selected { border-color: #4DBB7F; background: #f0fdf4; }
+    .tier-option.premium.selected { border-color: #FFD700; background: #fffef7; }
+    .tier-option .tier-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .tier-option .tier-price { font-size: 12px; color: #666; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+
+    .pest-programs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .pest-programs label {
+      display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 8px;
+      background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-weight: 400;
+    }
+    .pest-programs label:hover { border-color: #4DBB7F; }
+
+    .field-price {
+      margin-top: 16px; padding-top: 16px; border-top: 2px solid #e3e6ea;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .field-price .breakdown { font-size: 12px; color: #666; }
+    .field-price .total { font-size: 20px; font-weight: 700; color: #4DBB7F; }
+
+    .summary-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .summary-card h2 { margin-bottom: 20px; font-size: 20px; }
+    .summary-stat { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e3e6ea; }
+    .summary-stat:last-child { border-bottom: none; margin-top: 12px; padding-top: 16px; border-top: 2px solid #101230; }
+    .summary-stat .label { font-size: 14px; color: #666; font-weight: 600; }
+    .summary-stat .value { font-size: 14px; font-weight: 700; }
+    .summary-stat.total .value { font-size: 24px; color: #4DBB7F; }
+
+    .summary-card button {
+      width: 100%; padding: 14px; border: none; border-radius: 8px;
+      font-weight: 700; cursor: pointer; margin-top: 12px;
+    }
+    .cta-button { background: #4DBB7F; color: white; font-size: 16px; }
+    .cta-button:hover { background: #3da969; }
+    .export-button { background: #101230; color: white; font-size: 14px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>TerraNet Field Quote</h1>
+  <p>Remote Frequency Program</p>
+</div>
+
+<div class="map-section">
+  <div id="map"></div>
+
+  <div class="map-controls">
+    <h3>Draw New Field</h3>
+    <label>Field Name</label>
+    <input type="text" id="field-name-input" placeholder="e.g., North Field">
+    <label>Quick Navigate</label>
+    <input type="text" id="gps-coords" placeholder="36.5,-119.5">
+    <button onclick="goToGPS()">Go to Location</button>
+    <button class="secondary" onclick="saveCurrentField()">Save Field</button>
+  </div>
+
+  <div class="spectral-controls">
+    <h4>Spectral Layers (Premium)</h4>
+    <div class="spectral-toggles">
+      <label><input type="checkbox" id="ndvi-toggle" onchange="updateSpectralLayers()"> NDVI</label>
+      <label><input type="checkbox" id="msi-toggle" onchange="updateSpectralLayers()"> MSI</label>
+      <label><input type="checkbox" id="ccci-toggle" onchange="updateSpectralLayers()"> CCCI</label>
+    </div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="content-grid">
+    <div class="fields-section">
+      <h2>Your Fields</h2>
+      <div id="fields-container">
+        <div class="empty-state">
+          <h3>No fields added yet</h3>
+          <p>Draw field boundaries on the map above to get started</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <h2>Summary</h2>
+      <div class="summary-stat">
+        <span class="label">Total Fields</span>
+        <span class="value" id="total-fields">0</span>
+      </div>
+      <div class="summary-stat">
+        <span class="label">Total Acres</span>
+        <span class="value" id="total-acres">0</span>
+      </div>
+      <div class="summary-stat">
+        <span class="label">Basic Fields</span>
+        <span class="value" id="basic-count">0</span>
+      </div>
+      <div class="summary-stat">
+        <span class="label">Premium Fields</span>
+        <span class="value" id="premium-count">0</span>
+      </div>
+      <div class="summary-stat total">
+        <span class="label">Monthly Total</span>
+        <span class="value" id="monthly-total">$0.00</span>
+      </div>
+      <button class="cta-button" onclick="requestQuote()">Request Quote</button>
+      <button class="export-button" onclick="exportFieldData()">Export Field Data</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script>
+var APP = {
+  pricing: { basic: 0.50, premium: 1.00 },
+  crops: {
+    corn: ['Corn rootworm', 'European corn borer', 'Armyworm'],
+    soybeans: ['Soybean aphid', 'White mold', 'Brown stem rot'],
+    almonds: ['Navel orangeworm', 'Peach twig borer', 'Spider mites'],
+    grapes: ['Powdery mildew', 'Phylloxera', 'Leafhoppers'],
+    lettuce: ['Aphids', 'Downy mildew', 'Thrips'],
+    tomatoes: ['Hornworms', 'Early blight', 'Late blight'],
+    wheat: ['Hessian fly', 'Rust', 'Powdery mildew'],
+    cotton: ['Bollworm', 'Aphids', 'Whiteflies']
+  },
+  fields: [],
+  currentLayer: null,
+  spectralLayers: []
+};
+
+var map = L.map('map').setView([36.5, -119.5], 10);
+var drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: 'OpenStreetMap',
+  maxZoom: 19
+});
+
+var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Esri',
+  maxZoom: 22,
+  maxNativeZoom: 19
+});
+
+satellite.addTo(map);
+satellite.on('tileerror', function() {
+  map.removeLayer(satellite);
+  osm.addTo(map);
+});
+
+setTimeout(function() {
+  if (!map.hasLayer(osm) && !satellite._tiles) {
+    map.removeLayer(satellite);
+    osm.addTo(map);
+  }
+}, 3000);
+
+var drawControl = new L.Control.Draw({
+  position: 'topright',
+  draw: {
+    polygon: { allowIntersection: false, shapeOptions: { color: '#4DBB7F', weight: 3 } },
+    rectangle: { shapeOptions: { color: '#4DBB7F', weight: 3 } },
+    circle: { shapeOptions: { color: '#4DBB7F', weight: 3 } },
+    polyline: false,
+    marker: false,
+    circlemarker: false
+  },
+  edit: { featureGroup: drawnItems, remove: true }
+});
+map.addControl(drawControl);
+
+map.on(L.Draw.Event.CREATED, function(e) {
+  if (APP.currentLayer) {
+    drawnItems.removeLayer(APP.currentLayer);
+  }
+  APP.currentLayer = e.layer;
+  drawnItems.addLayer(APP.currentLayer);
+});
+
+L.control.scale({ position: 'bottomright' }).addTo(map);
+
+function loadFields() {
+  var saved = localStorage.getItem('terranet_fields');
+  if (saved) {
+    APP.fields = JSON.parse(saved);
+    renderFields();
+    updateSummary();
+    restoreFieldsToMap();
+  }
+}
+
+function saveFields() {
+  localStorage.setItem('terranet_fields', JSON.stringify(APP.fields));
+}
+
+function saveCurrentField() {
+  var name = document.getElementById('field-name-input').value.trim();
+  if (!name) {
+    alert('Please enter a field name');
+    return;
+  }
+  if (!APP.currentLayer) {
+    alert('Please draw a field boundary first');
+    return;
+  }
+
+  var geojson = APP.currentLayer.toGeoJSON();
+  var acres = calculateAcres(geojson);
+
+  var field = {
+    id: 'field_' + Date.now(),
+    name: name,
+    acres: acres,
+    geometry: geojson,
+    cropProgram: 'corn',
+    pestPrograms: [],
+    tier: 'basic'
+  };
+
+  APP.fields.push(field);
+  saveFields();
+  renderFields();
+  updateSummary();
+
+  document.getElementById('field-name-input').value = '';
+  APP.currentLayer = null;
+
+  var bounds = L.geoJSON(geojson).getBounds();
+  map.fitBounds(bounds, { padding: [50, 50] });
+}
+
+function calculateAcres(geojson) {
+  var coords = geojson.geometry.coordinates[0];
+  if (!coords || coords.length < 3) return 1;
+
+  var area = 0;
+  for (var i = 0; i < coords.length - 1; i++) {
+    area += coords[i][0] * coords[i + 1][1];
+    area -= coords[i + 1][0] * coords[i][1];
+  }
+  area = Math.abs(area / 2);
+  var acresApprox = area * 111319.9 * 111319.9 * 0.000247105;
+  return Math.max(1, Math.round(acresApprox * 10) / 10);
+}
+
+function deleteField(fieldId) {
+  if (!confirm('Delete this field?')) return;
+
+  for (var i = 0; i < APP.fields.length; i++) {
+    if (APP.fields[i].id === fieldId) {
+      APP.fields.splice(i, 1);
+      break;
+    }
+  }
+
+  saveFields();
+  renderFields();
+  updateSummary();
+  restoreFieldsToMap();
+}
+
+function updateField(fieldId, updates) {
+  for (var i = 0; i < APP.fields.length; i++) {
+    if (APP.fields[i].id === fieldId) {
+      for (var key in updates) {
+        APP.fields[i][key] = updates[key];
+      }
+      break;
+    }
+  }
+  saveFields();
+  renderFields();
+  updateSummary();
+}
+
+function togglePest(fieldId, pest, checked) {
+  for (var i = 0; i < APP.fields.length; i++) {
+    if (APP.fields[i].id === fieldId) {
+      var pests = APP.fields[i].pestPrograms;
+      if (checked) {
+        if (pests.indexOf(pest) === -1) {
+          pests.push(pest);
+        }
+      } else {
+        var idx = pests.indexOf(pest);
+        if (idx !== -1) {
+          pests.splice(idx, 1);
+        }
+      }
+      break;
+    }
+  }
+  saveFields();
+  renderFields();
+  updateSummary();
+}
+
+function renderFields() {
+  var container = document.getElementById('fields-container');
+
+  if (APP.fields.length === 0) {
+    container.innerHTML = '<div class="empty-state"><h3>No fields added yet</h3><p>Draw field boundaries on the map above</p></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < APP.fields.length; i++) {
+    var f = APP.fields[i];
+    var price = f.acres * APP.pricing[f.tier];
+    var isPremium = f.tier === 'premium';
+    var pests = APP.crops[f.cropProgram] || [];
+
+    html += '<div class="field-card ' + (isPremium ? 'premium' : '') + '">';
+    html += '<div class="field-header">';
+    html += '<div><h3>' + f.name + '</h3><div class="acres">' + f.acres + ' acres</div></div>';
+    html += '<div class="field-actions">';
+    html += '<button class="btn-edit" onclick="zoomToField(\'' + f.id + '\')">View</button>';
+    html += '<button class="btn-delete" onclick="deleteField(\'' + f.id + '\')">Delete</button>';
+    html += '</div></div>';
+
+    html += '<div class="tier-selection">';
+    html += '<div class="tier-option ' + (!isPremium ? 'selected' : '') + '" onclick="updateField(\'' + f.id + '\', {tier: \'basic\'})">';
+    html += '<div class="tier-name">Basic</div><div class="tier-price">$0.50/acre/mo</div></div>';
+    html += '<div class="tier-option premium ' + (isPremium ? 'selected' : '') + '" onclick="updateField(\'' + f.id + '\', {tier: \'premium\'})">';
+    html += '<div class="tier-name">Premium</div><div class="tier-price">$1.00/acre/mo</div></div>';
+    html += '</div>';
+
+    html += '<div class="form-group"><label>Crop Frequency Program</label>';
+    html += '<select onchange="updateField(\'' + f.id + '\', {cropProgram: this.value, pestPrograms: []})">';
+    for (var crop in APP.crops) {
+      var sel = f.cropProgram === crop ? ' selected' : '';
+      html += '<option value="' + crop + '"' + sel + '>' + crop.charAt(0).toUpperCase() + crop.slice(1) + '</option>';
+    }
+    html += '</select></div>';
+
+    if (isPremium) {
+      html += '<div class="form-group"><label>Pest Mitigation (Unlimited)</label><div class="pest-programs">';
+      for (var j = 0; j < pests.length; j++) {
+        var checked = f.pestPrograms.indexOf(pests[j]) !== -1 ? ' checked' : '';
+        html += '<label><input type="checkbox"' + checked + ' onchange="togglePest(\'' + f.id + '\', \'' + pests[j] + '\', this.checked)">' + pests[j] + '</label>';
+      }
+      html += '</div></div>';
+    } else {
+      html += '<div class="form-group"><label>Pest Mitigation</label><p style="font-size:12px;color:#999;">Upgrade to Premium</p></div>';
+    }
+
+    html += '<div class="field-price"><div class="breakdown">Base: $' + price.toFixed(2) + '/mo';
+    if (isPremium) html += '<br>Includes: Spectral + Pest programs';
+    html += '</div><div class="total">$' + price.toFixed(2) + '/mo</div></div>';
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function updateSummary() {
+  var total = 0;
+  var acres = 0;
+  var basic = 0;
+  var premium = 0;
+
+  for (var i = 0; i < APP.fields.length; i++) {
+    var f = APP.fields[i];
+    acres += f.acres;
+    total += f.acres * APP.pricing[f.tier];
+    if (f.tier === 'basic') basic++;
+    else premium++;
+  }
+
+  document.getElementById('total-fields').textContent = APP.fields.length;
+  document.getElementById('total-acres').textContent = acres.toFixed(1);
+  document.getElementById('basic-count').textContent = basic;
+  document.getElementById('premium-count').textContent = premium;
+  document.getElementById('monthly-total').textContent = '$' + total.toFixed(2);
+}
+
+function zoomToField(fieldId) {
+  for (var i = 0; i < APP.fields.length; i++) {
+    if (APP.fields[i].id === fieldId) {
+      var bounds = L.geoJSON(APP.fields[i].geometry).getBounds();
+      map.fitBounds(bounds, { padding: [50, 50] });
+      break;
+    }
+  }
+}
+
+function restoreFieldsToMap() {
+  drawnItems.clearLayers();
+  for (var i = 0; i < APP.fields.length; i++) {
+    var f = APP.fields[i];
+    if (f.geometry) {
+      var layer = L.geoJSON(f.geometry, {
+        style: {
+          color: f.tier === 'premium' ? '#FFD700' : '#4DBB7F',
+          weight: 3,
+          fillOpacity: 0.2
+        }
+      });
+      layer.addTo(drawnItems);
+    }
+  }
+}
+
+function updateSpectralLayers() {
+  for (var i = 0; i < APP.spectralLayers.length; i++) {
+    map.removeLayer(APP.spectralLayers[i]);
+  }
+  APP.spectralLayers = [];
+
+  var ndvi = document.getElementById('ndvi-toggle').checked;
+  var msi = document.getElementById('msi-toggle').checked;
+  var ccci = document.getElementById('ccci-toggle').checked;
+
+  var premiumFields = [];
+  for (var i = 0; i < APP.fields.length; i++) {
+    if (APP.fields[i].tier === 'premium') {
+      premiumFields.push(APP.fields[i]);
+    }
+  }
+
+  if (premiumFields.length === 0 && (ndvi || msi || ccci)) {
+    alert('Spectral layers require Premium tier fields');
+    document.getElementById('ndvi-toggle').checked = false;
+    document.getElementById('msi-toggle').checked = false;
+    document.getElementById('ccci-toggle').checked = false;
+    return;
+  }
+
+  for (var i = 0; i < premiumFields.length; i++) {
+    var coords = premiumFields[i].geometry.geometry.coordinates[0];
+    var latLngs = [];
+    for (var j = 0; j < coords.length; j++) {
+      latLngs.push([coords[j][1], coords[j][0]]);
+    }
+
+    if (ndvi) {
+      var layer = createSpectralLayer(latLngs, 'ndvi');
+      layer.addTo(map);
+      APP.spectralLayers.push(layer);
+    }
+    if (msi) {
+      var layer = createSpectralLayer(latLngs, 'msi');
+      layer.addTo(map);
+      APP.spectralLayers.push(layer);
+    }
+    if (ccci) {
+      var layer = createSpectralLayer(latLngs, 'ccci');
+      layer.addTo(map);
+      APP.spectralLayers.push(layer);
+    }
+  }
+}
+
+function createSpectralLayer(latLngs, type) {
+  var bounds = L.latLngBounds(latLngs);
+  var canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  var ctx = canvas.getContext('2d');
+  var imgData = ctx.createImageData(256, 256);
+  var data = imgData.data;
+
+  for (var y = 0; y < 256; y++) {
+    for (var x = 0; x < 256; x++) {
+      var idx = (y * 256 + x) * 4;
+      var val = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 + 0.5;
+
+      var r, g, b;
+      if (type === 'ndvi') {
+        if (val < 0.5) {
+          r = 255;
+          g = Math.floor(val * 2 * 255);
+          b = 0;
+        } else {
+          r = Math.floor((1 - val) * 2 * 255);
+          g = 255;
+          b = 0;
+        }
+      } else if (type === 'msi') {
+        r = 139;
+        g = 169;
+        b = 219;
+      } else {
+        r = 100;
+        g = 200;
+        b = 100;
+      }
+
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 180;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return L.imageOverlay(canvas.toDataURL(), bounds, { opacity: 0.6, interactive: false });
+}
+
+function goToGPS() {
+  var input = document.getElementById('gps-coords').value.split(',');
+  if (input.length === 2) {
+    var lat = parseFloat(input[0]);
+    var lng = parseFloat(input[1]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      map.setView([lat, lng], 16);
+    }
+  }
+}
+
+function exportFieldData() {
+  if (APP.fields.length === 0) {
+    alert('No fields to export');
+    return;
+  }
+
+  var data = { fields: APP.fields, exportDate: new Date().toISOString() };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'terranet_fields.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function requestQuote() {
+  if (APP.fields.length === 0) {
+    alert('Please add at least one field');
+    return;
+  }
+  alert('Quote request feature - would submit to sales team');
+}
+
+loadFields();
+console.log('TerraNet Dashboard Initialized');
+</script>
+</body>
+</html>
