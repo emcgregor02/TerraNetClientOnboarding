@@ -263,8 +263,10 @@ function loadFields() {
     renderFields();
     updateSummary();
     restoreFieldsToMap();
+    fetchQuotePreview();  // ask backend for pricing based on loaded fields
   }
 }
+
 
 function saveFields() {
   localStorage.setItem('terranet_fields', JSON.stringify(APP.fields));
@@ -294,10 +296,11 @@ function saveCurrentField() {
     tier: 'basic'
   };
 
-  APP.fields.push(field);
+    APP.fields.push(field);
   saveFields();
   renderFields();
   updateSummary();
+  fetchQuotePreview();  // NEW: update backend pricing when a field is added
 
   document.getElementById('field-name-input').value = '';
   APP.currentLayer = null;
@@ -330,10 +333,11 @@ function deleteField(fieldId) {
     }
   }
 
-  saveFields();
+   saveFields();
   renderFields();
   updateSummary();
   restoreFieldsToMap();
+  fetchQuotePreview();  // NEW: update backend pricing when a field is removed
 }
 
 function updateField(fieldId, updates) {
@@ -611,6 +615,117 @@ function requestQuote() {
 
 loadFields();
 console.log('TerraNet Dashboard Initialized');
+    async function fetchQuotePreview() {
+    // Build the payload using the fields already stored in APP.fields
+    const payload = {
+        quote_id: "q_" + Date.now(),
+        grower_id: "grower_demo",  // Later we'll make this dynamic
+        program_type: "REMOTE_ONLY",  // For now, keep static
+        fields: APP.fields.map(f => ({
+            field_id: f.id,
+            name: f.name,
+            acres: f.acres
+        }))
+    };
+
+    console.log("Sending quote payload:", payload);
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/quote/preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            console.error("Quote preview error:", response.status);
+            return;
+        }
+
+        const quote = await response.json();
+        console.log("Quote received:", quote);
+
+        // Update the UI summary to use backend data
+        updateSummaryWithQuote(quote);
+    } catch (err) {
+        console.error("Error contacting backend:", err);
+    }
+}
+function updateSummaryWithQuote(quote) {
+    document.getElementById("total-fields").textContent = quote.lines.length;
+
+    let totalAcres = quote.lines.reduce((sum, l) => sum + l.acres, 0);
+    document.getElementById("total-acres").textContent = totalAcres.toFixed(1);
+
+    document.getElementById("monthly-total").textContent =
+        `$${quote.annual_total.toFixed(2)}`;
+
+    // Later we add program_type and sprayer_fee to the UI
+}
+    // --- Pricing integration with backend API ---
+
+async function fetchQuotePreview() {
+  // If there are no fields, nothing to price yet
+  if (!APP.fields || APP.fields.length === 0) {
+    console.log("No fields to price yet.");
+    return;
+  }
+
+  const payload = {
+    quote_id: "q_" + Date.now(),
+    grower_id: "demo_grower",          // we'll make this real later
+    program_type: "REMOTE_ONLY",       // for now, just the $7/ac/yr plan
+    fields: APP.fields.map(f => ({
+      field_id: f.id,
+      name: f.name,
+      acres: f.acres
+    }))
+  };
+
+  console.log("Sending quote payload:", payload);
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/quote/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.error("Quote preview error:", response.status);
+      return;
+    }
+
+    const quote = await response.json();
+    console.log("Quote received:", quote);
+    updateSummaryWithQuote(quote);
+  } catch (err) {
+    console.error("Error contacting backend:", err);
+  }
+}
+
+function updateSummaryWithQuote(quote) {
+  // These IDs come from the summary section in your HTML.
+  // If names are slightly different, we’ll adjust.
+  const totalFieldsEl = document.getElementById("total-fields");
+  const totalAcresEl  = document.getElementById("total-acres");
+  const monthlyTotalEl = document.getElementById("monthly-total");
+
+  if (!totalFieldsEl || !totalAcresEl || !monthlyTotalEl) {
+    console.warn("Summary elements not found; check IDs.");
+    return;
+  }
+
+  totalFieldsEl.textContent = quote.lines.length.toString();
+
+  const totalAcres = quote.lines.reduce((sum, line) => sum + line.acres, 0);
+  totalAcresEl.textContent = totalAcres.toFixed(1);
+
+  // For now we’re showing the annual total from the backend;
+  // later we can convert to monthly or show both.
+  monthlyTotalEl.textContent = `$${quote.annual_total.toFixed(2)}`;
+}
+
 </script>
 </body>
 </html>
