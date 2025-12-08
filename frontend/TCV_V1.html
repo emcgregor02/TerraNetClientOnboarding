@@ -157,30 +157,41 @@
     </div>
 
     <div class="summary-card">
-      <h2>Summary</h2>
-      <div class="summary-stat">
-        <span class="label">Total Fields</span>
-        <span class="value" id="total-fields">0</span>
-      </div>
-      <div class="summary-stat">
-        <span class="label">Total Acres</span>
-        <span class="value" id="total-acres">0</span>
-      </div>
-      <div class="summary-stat">
-        <span class="label">Basic Fields</span>
-        <span class="value" id="basic-count">0</span>
-      </div>
-      <div class="summary-stat">
-        <span class="label">Premium Fields</span>
-        <span class="value" id="premium-count">0</span>
-      </div>
-      <div class="summary-stat total">
-        <span class="label">Monthly Total</span>
-        <span class="value" id="monthly-total">$0.00</span>
-      </div>
-      <button class="cta-button" onclick="requestQuote()">Request Quote</button>
-      <button class="export-button" onclick="exportFieldData()">Export Field Data</button>
-    </div>
+  <h2>TerraNet Quote Summary</h2>
+
+  <div class="summary-stat">
+      <span class="label">Total Fields</span>
+      <span class="value" id="total-fields">0</span>
+  </div>
+
+  <div class="summary-stat">
+      <span class="label">Total Acres</span>
+      <span class="value" id="total-acres">0</span>
+  </div>
+
+  <div class="summary-stat">
+      <span class="label">Annual TerraNet Program Cost</span>
+      <span class="value" id="annual-total">$0.00</span>
+  </div>
+
+  <div class="summary-stat">
+      <span class="label">Sprayer Setup Fee (If Applicable)</span>
+      <span class="value" id="sprayer-fee">$0.00</span>
+  </div>
+
+  <div class="summary-stat total">
+      <span class="label">First-Year Total</span>
+      <span class="value" id="first-year-total">$0.00</span>
+  </div>
+
+  <small style="display:block; margin-top:10px; color:#666;">
+    * Monthly equivalent = annual ÷ 12 (for planning reference)
+  </small>
+
+  <button class="cta-button" onclick="requestQuote()">Request Quote</button>
+  <button class="export-button" onclick="exportFieldData()">Export Field Data</button>
+</div>
+
   </div>
 </div>
 
@@ -261,7 +272,6 @@ function loadFields() {
   if (saved) {
     APP.fields = JSON.parse(saved);
     renderFields();
-    updateSummary();
     restoreFieldsToMap();
     fetchQuotePreview();  // ask backend for pricing based on loaded fields
   }
@@ -299,7 +309,6 @@ function saveCurrentField() {
     APP.fields.push(field);
   saveFields();
   renderFields();
-  updateSummary();
   fetchQuotePreview();  // NEW: update backend pricing when a field is added
 
   document.getElementById('field-name-input').value = '';
@@ -335,7 +344,6 @@ function deleteField(fieldId) {
 
    saveFields();
   renderFields();
-  updateSummary();
   restoreFieldsToMap();
   fetchQuotePreview();  // NEW: update backend pricing when a field is removed
 }
@@ -351,7 +359,6 @@ function updateField(fieldId, updates) {
   }
   saveFields();
   renderFields();
-  updateSummary();
 }
 
 function togglePest(fieldId, pest, checked) {
@@ -373,7 +380,6 @@ function togglePest(fieldId, pest, checked) {
   }
   saveFields();
   renderFields();
-  updateSummary();
 }
 
 function renderFields() {
@@ -432,27 +438,6 @@ function renderFields() {
   }
 
   container.innerHTML = html;
-}
-
-function updateSummary() {
-  var total = 0;
-  var acres = 0;
-  var basic = 0;
-  var premium = 0;
-
-  for (var i = 0; i < APP.fields.length; i++) {
-    var f = APP.fields[i];
-    acres += f.acres;
-    total += f.acres * APP.pricing[f.tier];
-    if (f.tier === 'basic') basic++;
-    else premium++;
-  }
-
-  document.getElementById('total-fields').textContent = APP.fields.length;
-  document.getElementById('total-acres').textContent = acres.toFixed(1);
-  document.getElementById('basic-count').textContent = basic;
-  document.getElementById('premium-count').textContent = premium;
-  document.getElementById('monthly-total').textContent = '$' + total.toFixed(2);
 }
 
 function zoomToField(fieldId) {
@@ -615,53 +600,7 @@ function requestQuote() {
 
 loadFields();
 console.log('TerraNet Dashboard Initialized');
-    async function fetchQuotePreview() {
-    // Build the payload using the fields already stored in APP.fields
-    const payload = {
-        quote_id: "q_" + Date.now(),
-        grower_id: "grower_demo",  // Later we'll make this dynamic
-        program_type: "REMOTE_ONLY",  // For now, keep static
-        fields: APP.fields.map(f => ({
-            field_id: f.id,
-            name: f.name,
-            acres: f.acres
-        }))
-    };
 
-    console.log("Sending quote payload:", payload);
-
-    try {
-        const response = await fetch("http://127.0.0.1:8000/quote/preview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            console.error("Quote preview error:", response.status);
-            return;
-        }
-
-        const quote = await response.json();
-        console.log("Quote received:", quote);
-
-        // Update the UI summary to use backend data
-        updateSummaryWithQuote(quote);
-    } catch (err) {
-        console.error("Error contacting backend:", err);
-    }
-}
-function updateSummaryWithQuote(quote) {
-    document.getElementById("total-fields").textContent = quote.lines.length;
-
-    let totalAcres = quote.lines.reduce((sum, l) => sum + l.acres, 0);
-    document.getElementById("total-acres").textContent = totalAcres.toFixed(1);
-
-    document.getElementById("monthly-total").textContent =
-        `$${quote.annual_total.toFixed(2)}`;
-
-    // Later we add program_type and sprayer_fee to the UI
-}
     // --- Pricing integration with backend API ---
 
 async function fetchQuotePreview() {
@@ -705,26 +644,30 @@ async function fetchQuotePreview() {
 }
 
 function updateSummaryWithQuote(quote) {
-  // These IDs come from the summary section in your HTML.
-  // If names are slightly different, we’ll adjust.
-  const totalFieldsEl = document.getElementById("total-fields");
-  const totalAcresEl  = document.getElementById("total-acres");
-  const monthlyTotalEl = document.getElementById("monthly-total");
+  const totalFieldsEl    = document.getElementById("total-fields");
+  const totalAcresEl     = document.getElementById("total-acres");
+  const annualEl         = document.getElementById("annual-total");
+  const sprayerEl        = document.getElementById("sprayer-fee");
+  const firstYearTotalEl = document.getElementById("first-year-total");
 
-  if (!totalFieldsEl || !totalAcresEl || !monthlyTotalEl) {
-    console.warn("Summary elements not found; check IDs.");
+  if (!totalFieldsEl || !totalAcresEl || !annualEl || !sprayerEl || !firstYearTotalEl) {
+    console.warn("Summary elements not found; check IDs in the summary HTML.");
     return;
   }
 
+  // Number of fields
   totalFieldsEl.textContent = quote.lines.length.toString();
 
+  // Total acres (sum of all line acres)
   const totalAcres = quote.lines.reduce((sum, line) => sum + line.acres, 0);
   totalAcresEl.textContent = totalAcres.toFixed(1);
 
-  // For now we’re showing the annual total from the backend;
-  // later we can convert to monthly or show both.
-  monthlyTotalEl.textContent = `$${quote.annual_total.toFixed(2)}`;
+  // Backend-driven pricing
+  annualEl.textContent         = `$${quote.annual_total.toFixed(2)}`;
+  sprayerEl.textContent        = `$${quote.sprayer_fee.toFixed(2)}`;
+  firstYearTotalEl.textContent = `$${quote.total_due_first_year.toFixed(2)}`;
 }
+
 
 </script>
 </body>
