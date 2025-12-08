@@ -662,6 +662,16 @@ function updateSummaryWithQuote(quote) {
   const totalAcres = quote.lines.reduce((sum, line) => sum + line.acres, 0);
   totalAcresEl.textContent = totalAcres.toFixed(1);
 
+  // Program label from backend program_type
+  const programType = quote.program_type || APP.programType;
+  let programText;
+  if (programType === "SPRAYER_PLUS_REMOTE") {
+    programText = "Sprayer + Remote ($2,000 + $5/ac/yr)";
+  } else {
+    programText = "Remote-only ($7/ac/yr)";
+  }
+  programEl.textContent = programText;
+
   // Backend-driven pricing
   annualEl.textContent         = `$${quote.annual_total.toFixed(2)}`;
   sprayerEl.textContent        = `$${quote.sprayer_fee.toFixed(2)}`;
