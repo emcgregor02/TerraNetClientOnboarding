@@ -109,6 +109,7 @@
         <th>Acres</th>
         <th>Annual Total</th>
         <th>Created</th>
+          <th>Actions</th>
       </tr>
       </thead>
       <tbody id="orders-body">
@@ -169,6 +170,7 @@
           <td>${order.total_acres.toFixed ? order.total_acres.toFixed(1) : order.total_acres}</td>
           <td>$${order.total_annual_cost.toFixed ? order.total_annual_cost.toFixed(2) : order.total_annual_cost}</td>
           <td class="muted">${created}</td>
+          <td> <button class="btn" onclick="deleteOrder('${order.quote_id}')">Delete</button> </td>
         `;
 
         tbody.appendChild(tr);
@@ -186,6 +188,24 @@
   }
 
   fetchOrders();
+    async function deleteOrder(quoteId) {
+  if (!confirm(`Delete order ${quoteId}? This cannot be undone.`)) return;
+
+  try {
+    const res = await fetch(`http://127.0.0.1:8000/orders/${quoteId}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) {
+      alert("Failed to delete order.");
+      return;
+    }
+    await fetchOrders(); // reload table
+  } catch (err) {
+    console.error("Error deleting order:", err);
+    alert("Error deleting order. See console.");
+  }
+}
+
 </script>
 </body>
 </html>

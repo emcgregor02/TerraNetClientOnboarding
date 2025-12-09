@@ -3,6 +3,7 @@ from pathlib import Path
 import csv
 import json
 import time
+import shutil
 
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
@@ -36,6 +37,14 @@ app.add_middleware(
 def health_check():
     return {"status": "ok"}
 
+@app.delete("/orders/{quote_id}")
+def delete_order(quote_id: str):
+    order_dir = ORDERS_ROOT / quote_id
+    if not order_dir.exists() or not order_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    shutil.rmtree(order_dir)
+    return {"quote_id": quote_id, "deleted": True}
 
 # -------------------------------------------------------------------
 # Quote preview models + endpoint
