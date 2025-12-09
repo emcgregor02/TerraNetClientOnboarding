@@ -13,7 +13,36 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Montserrat', sans-serif; background: #f5f7fa; }
 
-    .header { background: #101230; color: white; padding: 20px 40px; }
+    .header {
+  background: #101230;
+  color: white;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.program-toggle {
+  display: flex;
+  gap: 16px;
+  background: rgba(255,255,255,0.08);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.program-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.program-toggle input[type="radio"] {
+  accent-color: #4DBB7F;
+}
+
     .header h1 { font-size: 28px; }
     .header p { margin-top: 5px; font-size: 14px; opacity: 0.9; }
 
@@ -55,6 +84,32 @@
     }
     .field-card:hover { border-color: #4DBB7F; box-shadow: 0 4px 12px rgba(77, 187, 127, 0.15); }
     .field-card.premium { border-color: #FFD700; background: linear-gradient(135deg, #fffef7 0%, #fffdf0 100%); }
+    .field-meta-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin: 6px 0 10px;
+        color: #555;
+}
+
+.field-meta-label {
+  font-weight: 500;
+}
+
+.field-meta-value {
+  font-weight: 600;
+  color: #4DBB7F;
+}
+.grower-section {
+  margin-bottom: 24px;
+}
+
+.grower-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
 
     .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .field-header h3 { font-size: 18px; }
@@ -117,9 +172,25 @@
 <body>
 
 <div class="header">
-  <h1>TerraNet Field Quote</h1>
-  <p>Remote Frequency Program</p>
+  <div>
+    <h1>TerraNet Field Quote</h1>
+    <p>Remote Frequency Program</p>
+  </div>
+
+  <div class="program-toggle">
+    <label>
+      <input type="radio" name="program-type" value="REMOTE_ONLY"
+             checked onchange="setProgramType(this.value)">
+      Remote-only ($7/ac/year)
+    </label>
+    <label>
+      <input type="radio" name="program-type" value="SPRAYER_PLUS_REMOTE"
+             onchange="setProgramType(this.value)">
+      Sprayer + Remote ($2,000 + $5/ac/year)
+    </label>
+  </div>
 </div>
+
 
 <div class="map-section">
   <div id="map"></div>
@@ -155,6 +226,31 @@
         </div>
       </div>
     </div>
+  <div class="grower-section">
+    <h2>Grower Information</h2>
+    <div class="grower-card">
+      <div class="form-group">
+        <label for="grower-name">Grower Name</label>
+        <input type="text" id="grower-name" placeholder="John Smith" oninput="updateGrowerInfo()">
+      </div>
+      <div class="form-group">
+        <label for="grower-email">Email</label>
+        <input type="email" id="grower-email" placeholder="john@example.com" oninput="updateGrowerInfo()">
+      </div>
+      <div class="form-group">
+        <label for="grower-farm">Farm / Operation Name</label>
+        <input type="text" id="grower-farm" placeholder="Smith Farms" oninput="updateGrowerInfo()">
+      </div>
+      <div class="form-group">
+        <label for="grower-phone">Phone</label>
+        <input type="tel" id="grower-phone" placeholder="(555) 123-4567" oninput="updateGrowerInfo()">
+      </div>
+      <div class="form-group">
+        <label for="grower-notes">Account Notes</label>
+        <textarea id="grower-notes" rows="10" placeholder="Billing contact, special instructions" oninput="updateGrowerInfo()"></textarea>
+      </div>
+    </div>
+  </div>
 
     <div class="summary-card">
   <h2>TerraNet Quote Summary</h2>
@@ -168,7 +264,10 @@
       <span class="label">Total Acres</span>
       <span class="value" id="total-acres">0</span>
   </div>
-
+  <div class="summary-stat">
+      <span class="label">Program</span>
+      <span class="value" id="program-label">Remote-only ($7/ac/yr)</span>
+  </div>
   <div class="summary-stat">
       <span class="label">Annual TerraNet Program Cost</span>
       <span class="value" id="annual-total">$0.00</span>
@@ -188,8 +287,7 @@
     * Monthly equivalent = annual ÷ 12 (for planning reference)
   </small>
 
-  <button class="cta-button" onclick="requestQuote()">Request Quote</button>
-  <button class="export-button" onclick="exportFieldData()">Export Field Data</button>
+  <button class="cta-button" onclick="checkout()">Checkout</button>
 </div>
 
   </div>
@@ -199,7 +297,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
 var APP = {
-  pricing: { basic: 0.50, premium: 1.00 },
+  pricing: { basic: 0.50, premium: 1.00 },  // legacy, mostly visual now
+  programType: "REMOTE_ONLY",               // you already added this earlier
   crops: {
     corn: ['Corn rootworm', 'European corn borer', 'Armyworm'],
     soybeans: ['Soybean aphid', 'White mold', 'Brown stem rot'],
@@ -209,10 +308,17 @@ var APP = {
     tomatoes: ['Hornworms', 'Early blight', 'Late blight'],
     wheat: ['Hessian fly', 'Rust', 'Powdery mildew'],
     cotton: ['Bollworm', 'Aphids', 'Whiteflies']
-  },
+    },
   fields: [],
   currentLayer: null,
-  spectralLayers: []
+  spectralLayers: [],
+  growerInfo: {
+    name: "",
+    email: "",
+    farmName: "",
+    phone: "",
+    notes: ""
+  }
 };
 
 var map = L.map('map').setView([36.5, -119.5], 10);
@@ -280,6 +386,35 @@ function loadFields() {
 
 function saveFields() {
   localStorage.setItem('terranet_fields', JSON.stringify(APP.fields));
+}
+function updateGrowerInfo() {
+  APP.growerInfo = {
+    name: document.getElementById("grower-name").value.trim(),
+    email: document.getElementById("grower-email").value.trim(),
+    farmName: document.getElementById("grower-farm").value.trim(),
+    phone: document.getElementById("grower-phone").value.trim(),
+    notes: document.getElementById("grower-notes").value.trim()
+  };
+
+  localStorage.setItem("terranet_grower", JSON.stringify(APP.growerInfo));
+}
+
+function loadGrowerInfo() {
+  var stored = localStorage.getItem("terranet_grower");
+  if (!stored) return;
+
+  try {
+    APP.growerInfo = JSON.parse(stored);
+  } catch (e) {
+    console.warn("Could not parse stored grower info", e);
+    return;
+  }
+
+  document.getElementById("grower-name").value  = APP.growerInfo.name  || "";
+  document.getElementById("grower-email").value = APP.growerInfo.email || "";
+  document.getElementById("grower-farm").value  = APP.growerInfo.farmName || "";
+  document.getElementById("grower-phone").value = APP.growerInfo.phone || "";
+  document.getElementById("grower-notes").value = APP.growerInfo.notes || "";
 }
 
 function saveCurrentField() {
@@ -386,59 +521,105 @@ function renderFields() {
   var container = document.getElementById('fields-container');
 
   if (APP.fields.length === 0) {
-    container.innerHTML = '<div class="empty-state"><h3>No fields added yet</h3><p>Draw field boundaries on the map above</p></div>';
+    container.innerHTML =
+      '<div class="empty-state">' +
+        '<h3>No fields added yet</h3>' +
+        '<p>Draw field boundaries on the map above to get started</p>' +
+      '</div>';
     return;
   }
 
   var html = '';
   for (var i = 0; i < APP.fields.length; i++) {
     var f = APP.fields[i];
-    var price = f.acres * APP.pricing[f.tier];
-    var isPremium = f.tier === 'premium';
-    var pests = APP.crops[f.cropProgram] || [];
 
-    html += '<div class="field-card ' + (isPremium ? 'premium' : '') + '">';
-    html += '<div class="field-header">';
-    html += '<div><h3>' + f.name + '</h3><div class="acres">' + f.acres + ' acres</div></div>';
-    html += '<div class="field-actions">';
-    html += '<button class="btn-edit" onclick="zoomToField(\'' + f.id + '\')">View</button>';
-    html += '<button class="btn-delete" onclick="deleteField(\'' + f.id + '\')">Delete</button>';
-    html += '</div></div>';
+    html += '<div class="field-card">';
+    html += '  <div class="field-header">';
+    html += '    <div><h3>' + f.name + '</h3>' +
+            '    <div class="acres">' + f.acres.toFixed(1) + ' acres</div></div>';
+    html += '    <div class="field-actions">';
+    html += '      <button class="btn-edit" onclick="zoomToField(\'' + f.id + '\')">View</button>';
+    html += '      <button class="btn-delete" onclick="deleteField(\'' + f.id + '\')">Delete</button>';
+    html += '    </div>';
+    html += '  </div>';
 
-    html += '<div class="tier-selection">';
-    html += '<div class="tier-option ' + (!isPremium ? 'selected' : '') + '" onclick="updateField(\'' + f.id + '\', {tier: \'basic\'})">';
-    html += '<div class="tier-name">Basic</div><div class="tier-price">$0.50/acre/mo</div></div>';
-    html += '<div class="tier-option premium ' + (isPremium ? 'selected' : '') + '" onclick="updateField(\'' + f.id + '\', {tier: \'premium\'})">';
-    html += '<div class="tier-name">Premium</div><div class="tier-price">$1.00/acre/mo</div></div>';
-    html += '</div>';
+    var annualCostText = (typeof f.annualCost === "number")    // Annual cost (if we have it from backend)
+      ? "$" + f.annualCost.toFixed(2) + "/yr"
+      : "–";
 
-    html += '<div class="form-group"><label>Crop Frequency Program</label>';
-    html += '<select onchange="updateField(\'' + f.id + '\', {cropProgram: this.value, pestPrograms: []})">';
+    html += '  <div class="field-meta-row">';
+    html += '    <span class="field-meta-label">Estimated Annual Cost</span>';
+    html += '    <span class="field-meta-value">' + annualCostText + '</span>';
+    html += '  </div>';
+
+
+    // Crop selector (kept, since it’s useful metadata / future logic)
+    html += '  <div class="form-group"><label>Crop Frequency Program</label>';
+    html += '  <div class="form-group"><label>Notes</label>';
+    html += '    <textarea rows="2" placeholder="Pivot name, soil notes, grower comments" ';
+    html += '      onblur="updateField(\'' + f.id + '\', { notes: this.value })">';
+    html += (f.notes ? f.notes.replace(/</g, "&lt;") : '');
+    html += '</textarea>';
+    html += '  </div>';
+
+    html += '    <select onchange="updateField(\'' + f.id + '\', {cropProgram: this.value})">';
     for (var crop in APP.crops) {
       var sel = f.cropProgram === crop ? ' selected' : '';
-      html += '<option value="' + crop + '"' + sel + '>' + crop.charAt(0).toUpperCase() + crop.slice(1) + '</option>';
+      html += '      <option value="' + crop + '"' + sel + '>' +
+              crop.charAt(0).toUpperCase() + crop.slice(1) + '</option>';
     }
-    html += '</select></div>';
+    html += '    </select>';
+    html += '  </div>';
 
-    if (isPremium) {
-      html += '<div class="form-group"><label>Pest Mitigation (Unlimited)</label><div class="pest-programs">';
-      for (var j = 0; j < pests.length; j++) {
-        var checked = f.pestPrograms.indexOf(pests[j]) !== -1 ? ' checked' : '';
-        html += '<label><input type="checkbox"' + checked + ' onchange="togglePest(\'' + f.id + '\', \'' + pests[j] + '\', this.checked)">' + pests[j] + '</label>';
-      }
-      html += '</div></div>';
-    } else {
-      html += '<div class="form-group"><label>Pest Mitigation</label><p style="font-size:12px;color:#999;">Upgrade to Premium</p></div>';
-    }
-
-    html += '<div class="field-price"><div class="breakdown">Base: $' + price.toFixed(2) + '/mo';
-    if (isPremium) html += '<br>Includes: Spectral + Pest programs';
-    html += '</div><div class="total">$' + price.toFixed(2) + '/mo</div></div>';
-    html += '</div>';
+    html += '</div>'; // end field-card
   }
 
   container.innerHTML = html;
 }
+
+async function checkout() {
+  if (APP.fields.length === 0) {
+    alert("Please add at least one field before checkout.");
+    return;
+  }
+  if (!APP.growerInfo.name || !APP.growerInfo.email) {
+    alert("Please enter at least a grower name and email before checkout.");
+    return;
+  }
+
+  const payload = {
+    grower: APP.growerInfo,
+    program_type: APP.programType,
+    fields: APP.fields
+  };
+
+  console.log("Checkout payload (sending to backend):", payload);
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/checkout/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.error("Checkout start failed:", response.status);
+      const text = await response.text();
+      console.error("Response body:", text);
+      alert("Checkout failed to start. See console for details.");
+      return;
+    }
+
+    const data = await response.json();
+    console.log("Checkout start response:", data);
+    alert("Checkout draft created for quote " + data.quote_id +
+          ". Next step: integrate Converge payment.");
+  } catch (err) {
+    console.error("Error calling /checkout/start:", err);
+    alert("Network error starting checkout. See console for details.");
+  }
+}
+
 
 function zoomToField(fieldId) {
   for (var i = 0; i < APP.fields.length; i++) {
@@ -599,10 +780,19 @@ function requestQuote() {
 }
 
 loadFields();
+loadGrowerInfo();
 console.log('TerraNet Dashboard Initialized');
 
-    // --- Pricing integration with backend API ---
 
+    // --- Pricing integration with backend API ---
+  function setProgramType(value) {
+  APP.programType = value;
+  console.log("Program type changed to:", value);
+
+  if (APP.fields && APP.fields.length > 0) {
+    fetchQuotePreview();
+  }
+}
 async function fetchQuotePreview() {
   // If there are no fields, nothing to price yet
   if (!APP.fields || APP.fields.length === 0) {
@@ -613,13 +803,14 @@ async function fetchQuotePreview() {
   const payload = {
     quote_id: "q_" + Date.now(),
     grower_id: "demo_grower",          // we'll make this real later
-    program_type: "REMOTE_ONLY",       // for now, just the $7/ac/yr plan
+    program_type: APP.programType,
     fields: APP.fields.map(f => ({
       field_id: f.id,
       name: f.name,
       acres: f.acres
     }))
   };
+
 
   console.log("Sending quote payload:", payload);
 
@@ -638,19 +829,41 @@ async function fetchQuotePreview() {
     const quote = await response.json();
     console.log("Quote received:", quote);
     updateSummaryWithQuote(quote);
+    applyQuoteToFields(quote);
   } catch (err) {
     console.error("Error contacting backend:", err);
   }
+}
+function applyQuoteToFields(quote) {
+  if (!quote || !Array.isArray(quote.lines)) return;
+
+  // Map lines by field_id for quick lookup
+  const lineById = {};
+  quote.lines.forEach(line => {
+    lineById[line.field_id] = line;
+  });
+
+  // Attach annualCost to each field
+  APP.fields.forEach(f => {
+    const line = lineById[f.id];
+    if (line) {
+      f.annualCost = line.annual_amount; // from backend
+    }
+  });
+
+  saveFields();
+  renderFields();  // re-render cards to show updated per-field cost
 }
 
 function updateSummaryWithQuote(quote) {
   const totalFieldsEl    = document.getElementById("total-fields");
   const totalAcresEl     = document.getElementById("total-acres");
+  const programEl        = document.getElementById("program-label");
   const annualEl         = document.getElementById("annual-total");
   const sprayerEl        = document.getElementById("sprayer-fee");
   const firstYearTotalEl = document.getElementById("first-year-total");
 
-  if (!totalFieldsEl || !totalAcresEl || !annualEl || !sprayerEl || !firstYearTotalEl) {
+  if (!totalFieldsEl || !totalAcresEl || !programEl || !annualEl || !sprayerEl || !firstYearTotalEl) {
     console.warn("Summary elements not found; check IDs in the summary HTML.");
     return;
   }
