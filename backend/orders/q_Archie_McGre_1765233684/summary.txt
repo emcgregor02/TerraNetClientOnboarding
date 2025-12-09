@@ -1,0 +1,18 @@
+Quote ID: q_Archie_McGre_1765233684
+Grower: Archie McGregor (emcgregor@upterra.co)
+Farm: McGegor M&L
+Program: REMOTE_ONLY
+Fields: 3
+Total Acres: 58.0
+Total Annual Cost: 406.0
+
+Notes:
+10 Liberty ship way, Sausalito, CA 94965
+
+Included files:
+- checkout_start.json
+- client_info.csv
+- fields.csv
+- fields.geojson
+- fields_geojson/*.geojson
+- summary.txt
