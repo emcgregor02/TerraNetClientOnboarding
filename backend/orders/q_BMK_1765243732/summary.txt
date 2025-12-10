@@ -1,0 +1,18 @@
+Quote ID: q_BMK_1765243732
+Grower: BMK (emcgregor@upterra.co)
+Farm: McArthur Farms
+Program: REMOTE_ONLY
+Fields: 1
+Total Acres: 22.5
+Total Annual Cost: 157.5
+
+Notes:
+10 Liberty ship way, Sausalito, CA 94965
+
+Included files:
+- checkout_start.json
+- client_info.csv
+- fields.csv
+- fields.geojson
+- fields_geojson/*.geojson
+- summary.txt

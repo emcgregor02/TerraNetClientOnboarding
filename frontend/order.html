@@ -61,6 +61,20 @@
       color: #2563eb;
       text-decoration: none;
     }
+    .export-btn {
+      display: inline-block;
+      margin: 4px 6px 4px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .export-btn:hover {
+      background: #e5e7eb;
+    }
+
   </style>
 </head>
 
@@ -168,11 +182,23 @@
 
       <div class="card">
         <div class="section-title">Exports</div>
-        <a class="export-link">${order.exports.client_info_csv}</a>
-        <a class="export-link">${order.exports.fields_csv}</a>
-        <a class="export-link">${order.exports.fields_geojson}</a>
-        <a class="export-link">${order.exports.fields_geojson_dir}</a>
+        <button class="export-btn" onclick="downloadExport('client_info.csv')">
+          client_info.csv
+        </button>
+        <button class="export-btn" onclick="downloadExport('fields.csv')">
+          fields.csv
+        </button>
+        <button class="export-btn" onclick="downloadExport('fields.geojson')">
+          fields.geojson
+        </button>
+        <button class="export-btn" onclick="triggerOnboarding()">
+            Generate Onboarding Packet (ZIP)
+        </button>
+        <button class="export-btn" onclick="downloadExport('onboarding_packet.zip')">
+            onboarding_packet.zip
+        </button>
       </div>
+
     `;
   }
     async function updateStatus() {
@@ -202,7 +228,45 @@
       alert("Error updating status. See console.");
     }
   }
+  function getQuoteId() {
+    return getQueryParam("quote_id");
+  }
+  function downloadExport(filename) {
+    const quoteId = getQuoteId();
+    if (!quoteId) return;
 
+    const url = `http://127.0.0.1:8000/orders/${quoteId}/download/${filename}`;
+    // Redirecting the browser triggers the download
+    window.location.href = url;
+  }
+  async function triggerOnboarding() {
+    const quoteId = getQuoteId();
+    if (!quoteId) return;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/orders/${quoteId}/onboarding`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!res.ok) {
+        alert("Failed to generate onboarding packet. Check backend logs.");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Onboarding packet generated:", data);
+
+      alert("Onboarding packet generated successfully.");
+
+      // Automatically download zip if desired:
+      downloadExport("onboarding_packet.zip");
+
+    } catch (err) {
+      console.error("Error generating onboarding packet:", err);
+      alert("Error generating onboarding packet. See console.");
+    }
+  }
   function goBack() {
     window.location.href = "dashboard.html";
   }
