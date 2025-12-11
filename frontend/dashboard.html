@@ -93,8 +93,21 @@
     <h1>TerraNet Orders</h1>
     <div class="sub">Internal dashboard · local HQ server</div>
   </div>
-  <button class="btn btn-primary" onclick="goToQuoteBuilder()">New Quote</button>
+  <button class="btn btn-primary" onclick="goToQuoteBuilder()"
+          style="padding:8px 16px;border-radius:8px;border:none;background:#4DBB7F;color:white;font-weight:600;cursor:pointer">
+      New Quote</button>
+
 </header>
+
+<div style="margin-top: 6px; margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center;">
+  <input
+    id="order-search"
+    type="text"
+    placeholder="Search by grower, quote ID, status..."
+    style="padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;font-size:13px;min-width:260px;"
+    oninput="onSearchChange()"
+  />
+</div>
 
 <main>
   <div class="card">
@@ -120,75 +133,103 @@
 </main>
 
 <script>
+  let ALL_ORDERS = [];
+
   async function fetchOrders() {
     const tbody = document.getElementById('orders-body');
-    tbody.innerHTML = '<tr><td colspan="7" class="muted">Loading orders…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading orders…</td></tr>';
 
     try {
       const res = await fetch('http://127.0.0.1:8000/orders');
       if (!res.ok) {
-        tbody.innerHTML = '<tr><td colspan="7" class="muted">Failed to load orders.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="muted">Failed to load orders.</td></tr>';
         return;
       }
 
       const data = await res.json();
-      if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="muted">No orders yet. Create a new quote to get started.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = '';
-            data.forEach(order => {
-        const tr = document.createElement('tr');
-
-        const programLabel = order.program_type === 'SPRAYER_PLUS_REMOTE'
-          ? 'Sprayer + Remote'
-          : 'Remote-only';
-
-        const created = new Date(order.created_at).toLocaleString();
-
-        // simple inline color for status
-        let statusStyle = 'background:#e5e7eb;color:#374151;'; // default gray
-        if (order.status === 'Quoted') {
-          statusStyle = 'background:#e0f2fe;color:#0369a1;';
-        } else if (order.status === 'Awaiting Payment') {
-          statusStyle = 'background:#fef3c7;color:#92400e;';
-        } else if (order.status === 'Paid') {
-          statusStyle = 'background:#ecfdf3;color:#166534;';
-        } else if (order.status === 'Onboarding Started') {
-          statusStyle = 'background:#eef2ff;color:#3730a3;';
-        } else if (order.status === 'Completed') {
-          statusStyle = 'background:#f3f4f6;color:#4b5563;';
-        }
-
-        tr.innerHTML = `
-          <td><a href="order.html?quote_id=${order.quote_id}" style="color:#2563eb;text-decoration:none">${order.quote_id}</a></td>
-          <td>${order.grower_name}</td>
-          <td><span class="pill">${programLabel}</span></td>
-          <td><span class="pill" style="${statusStyle}">${order.status}</span></td>
-          <td>${order.field_count}</td>
-          <td>${order.total_acres.toFixed ? order.total_acres.toFixed(1) : order.total_acres}</td>
-          <td>$${order.total_annual_cost.toFixed ? order.total_annual_cost.toFixed(2) : order.total_annual_cost}</td>
-          <td class="muted">${created}</td>
-          <td> <button class="btn" onclick="deleteOrder('${order.quote_id}')">Delete</button> </td>
-        `;
-
-        tbody.appendChild(tr);
-      });
-
+      ALL_ORDERS = data || [];
+      renderOrdersTable(ALL_ORDERS);
     } catch (err) {
       console.error('Error loading orders:', err);
-      tbody.innerHTML = '<tr><td colspan="7" class="muted">Error loading orders (see console).</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">Error loading orders (see console).</td></tr>';
     }
   }
 
-  function goToQuoteBuilder() {
-    // Assuming dashboard.html lives alongside TCV_V1.html in /frontend
-    window.location.href = 'TCV_V1.html';
+  function renderOrdersTable(orders) {
+    const tbody = document.getElementById('orders-body');
+
+    if (!orders || orders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="muted">No orders yet. Create a new quote to get started.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+
+    orders.forEach(order => {
+      const tr = document.createElement('tr');
+
+      const programLabel = order.program_type === 'SPRAYER_PLUS_REMOTE'
+        ? 'Sprayer + Remote'
+        : 'Remote-only';
+
+      const created = new Date(order.created_at).toLocaleString();
+
+      // simple inline color for status
+      let statusStyle = 'background:#e5e7eb;color:#374151;'; // default gray
+      if (order.status === 'Quoted') {
+        statusStyle = 'background:#e0f2fe;color:#0369a1;';
+      } else if (order.status === 'Awaiting Payment') {
+        statusStyle = 'background:#fef3c7;color:#92400e;';
+      } else if (order.status === 'Paid') {
+        statusStyle = 'background:#ecfdf3;color:#166534;';
+      } else if (order.status === 'Onboarding Started') {
+        statusStyle = 'background:#eef2ff;color:#3730a3;';
+      } else if (order.status === 'Completed') {
+        statusStyle = 'background:#f3f4f6;color:#4b5563;';
+      }
+
+      tr.innerHTML = `
+        <td><a href="order.html?quote_id=${order.quote_id}" style="color:#2563eb;text-decoration:none">${order.quote_id}</a></td>
+        <td>${order.grower_name}</td>
+        <td><span class="pill">${programLabel}</span></td>
+        <td><span class="pill" style="${statusStyle}">${order.status}</span></td>
+        <td>${order.field_count}</td>
+        <td>${order.total_acres.toFixed ? order.total_acres.toFixed(1) : order.total_acres}</td>
+        <td>$${order.total_annual_cost.toFixed ? order.total_annual_cost.toFixed(2) : order.total_annual_cost}</td>
+        <td class="muted">${created}</td>
+        <td><button class="btn" onclick="deleteOrder('${order.quote_id}')">Delete</button></td>
+      `;
+
+      tbody.appendChild(tr);
+    });
   }
 
-  fetchOrders();
-    async function deleteOrder(quoteId) {
+  function onSearchChange() {
+    const q = (document.getElementById('order-search').value || '').toLowerCase();
+
+    if (!q) {
+      renderOrdersTable(ALL_ORDERS);
+      return;
+    }
+
+    const filtered = ALL_ORDERS.filter(o => {
+      return (
+        (o.quote_id && o.quote_id.toLowerCase().includes(q)) ||
+        (o.grower_name && o.grower_name.toLowerCase().includes(q)) ||
+        (o.program_type && o.program_type.toLowerCase().includes(q)) ||
+        (o.status && o.status.toLowerCase().includes(q))
+      );
+    });
+
+    renderOrdersTable(filtered);
+  }
+
+  function goToQuoteBuilder() {
+    // Add reset=1 so TCV_V1 starts fresh
+    window.location.href = 'TCV_V1.html?reset=1';
+  }
+
+async function deleteOrder(quoteId) {
   if (!confirm(`Delete order ${quoteId}? This cannot be undone.`)) return;
 
   try {
@@ -206,6 +247,7 @@
   }
 }
 
+  fetchOrders();
 </script>
 </body>
 </html>

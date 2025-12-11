@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
+import shutil
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -49,6 +51,13 @@ class GrowerInfo(BaseModel):
     farmName: Optional[str] = None
     phone: Optional[str] = None
     notes: Optional[str] = None
+    address1: Optional[str] = None
+    address2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postalCode: Optional[str] = None
+    country: Optional[str] = None
+
 
 
 class CheckoutStartRequest(BaseModel):
@@ -120,6 +129,12 @@ def write_client_csv(order_dir: Path, quote_id: str, payload: CheckoutStartReque
         "farm_name",
         "phone",
         "notes",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "postal_code",
+        "country",
         "program_type",
         "field_count",
         "total_acres",
@@ -136,6 +151,12 @@ def write_client_csv(order_dir: Path, quote_id: str, payload: CheckoutStartReque
             "farm_name": g.farmName or "",
             "phone": g.phone or "",
             "notes": g.notes or "",
+            "address1": g.address1 or "",
+            "address2": g.address2 or "",
+            "city": g.city or "",
+            "state": g.state or "",
+            "postal_code": g.postalCode or "",
+            "country": g.country or "",
             "program_type": payload.program_type,
             "field_count": len(fields),
             "total_acres": round(total_acres, 2),
@@ -406,6 +427,22 @@ def list_orders():
 @router.get("/orders/{quote_id}", response_model=OrderDetail)
 def get_order_detail(quote_id: str):
     return build_order_detail(quote_id)
+
+@router.delete("/orders/{quote_id}")
+def delete_order(quote_id: str):
+    """
+    Permanently delete an order folder and all its exports.
+    """
+    order_dir = ORDERS_ROOT / quote_id
+    if not order_dir.exists() or not order_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    try:
+        shutil.rmtree(order_dir)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete order: {e}")
+
+    return {"quote_id": quote_id, "deleted": True}
 
 
 @router.get("/orders/{quote_id}/status")

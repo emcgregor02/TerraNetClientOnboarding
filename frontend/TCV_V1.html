@@ -177,19 +177,27 @@
     <p>Remote Frequency Program</p>
   </div>
 
-  <div class="program-toggle">
-    <label>
-      <input type="radio" name="program-type" value="REMOTE_ONLY"
-             checked onchange="setProgramType(this.value)">
-      Remote-only ($7/ac/year)
-    </label>
-    <label>
-      <input type="radio" name="program-type" value="SPRAYER_PLUS_REMOTE"
-             onchange="setProgramType(this.value)">
-      Sprayer + Remote ($2,000 + $5/ac/year)
-    </label>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <button class="btn" onclick="window.location.href='dashboard.html'"
+            style="padding:8px 16px;border-radius:8px;border:none;background:#4DBB7F;color:white;font-weight:600;cursor:pointer">
+      View Orders
+    </button>
+
+    <div class="program-toggle">
+      <label>
+        <input type="radio" name="program-type" value="REMOTE_ONLY"
+               checked onchange="setProgramType(this.value)">
+        Remote-only ($7/ac/year)
+      </label>
+      <label>
+        <input type="radio" name="program-type" value="SPRAYER_PLUS_REMOTE"
+               onchange="setProgramType(this.value)">
+        Sprayer + Remote ($2,000 + $5/ac/year)
+      </label>
+    </div>
   </div>
 </div>
+
 
 
 <div class="map-section">
@@ -205,7 +213,7 @@
     <button class="secondary" onclick="saveCurrentField()">Save Field</button>
   </div>
 
-  <div class="spectral-controls">
+  <!--<div class="spectral-controls">
     <h4>Spectral Layers (Premium)</h4>
     <div class="spectral-toggles">
       <label><input type="checkbox" id="ndvi-toggle" onchange="updateSpectralLayers()"> NDVI</label>
@@ -213,7 +221,7 @@
       <label><input type="checkbox" id="ccci-toggle" onchange="updateSpectralLayers()"> CCCI</label>
     </div>
   </div>
-</div>
+</div> -->
 
 <div class="main-content">
   <div class="content-grid">
@@ -244,6 +252,30 @@
       <div class="form-group">
         <label for="grower-phone">Phone</label>
         <input type="tel" id="grower-phone" placeholder="(555) 123-4567" oninput="updateGrowerInfo()">
+      </div>
+      <div class="form-group">
+        <label for="grower-address1">Address Line 1</label>
+        <input id="grower-address1" type="text" placeholder="Street address" />
+      </div>
+      <div class="form-group">
+        <label for="grower-address2">Address Line 2</label>
+        <input id="grower-address2" type="text" placeholder="Suite / Apt (optional)" />
+      </div>
+      <div class="form-group">
+        <label for="grower-city">City</label>
+        <input id="grower-city" type="text" placeholder="City" />
+      </div>
+      <div class="form-group">
+        <label for="grower-state">State</label>
+        <input id="grower-state" type="text" placeholder="State" />
+      </div>
+      <div class="form-group">
+        <label for="grower-zip">Postal / ZIP Code</label>
+        <input id="grower-zip" type="text" placeholder="ZIP" />
+      </div>
+      <div class="form-group">
+        <label for="grower-country">Country</label>
+        <input id="grower-country" type="text" value="USA" />
       </div>
       <div class="form-group">
         <label for="grower-notes">Account Notes</label>
@@ -383,6 +415,10 @@ function loadFields() {
   }
 }
 
+function getQueryParam(key) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key);
+}
 
 function saveFields() {
   localStorage.setItem('terranet_fields', JSON.stringify(APP.fields));
@@ -578,47 +614,58 @@ function renderFields() {
 }
 
 async function checkout() {
-  if (APP.fields.length === 0) {
+  if (!APP.fields || APP.fields.length === 0) {
     alert("Please add at least one field before checkout.");
     return;
   }
-  if (!APP.growerInfo.name || !APP.growerInfo.email) {
+
+  // 🔹 Collect grower info from the form and save to localStorage
+  const grower = collectGrowerInfo();
+  APP.growerInfo = grower;  // keep in-memory state in sync
+
+  // 🔹 Validate grower info AFTER collecting it
+  if (!grower.name || !grower.email) {
     alert("Please enter at least a grower name and email before checkout.");
     return;
   }
 
   const payload = {
-    grower: APP.growerInfo,
-    program_type: APP.programType,
-    fields: APP.fields
+    grower: grower,
+    program_type: APP.programType || "REMOTE_ONLY",
+    fields: APP.fields || [],
   };
 
-  console.log("Checkout payload (sending to backend):", payload);
+  console.log("Checkout payload:", payload);
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/checkout/start", {
+    const res = await fetch("http://127.0.0.1:8000/checkout/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      console.error("Checkout start failed:", response.status);
-      const text = await response.text();
-      console.error("Response body:", text);
-      alert("Checkout failed to start. See console for details.");
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Checkout failed:", res.status, text);
+      alert("Checkout failed. See console for details.");
       return;
     }
 
-    const data = await response.json();
-    console.log("Checkout start response:", data);
-    alert("Checkout draft created for quote " + data.quote_id +
-          ". Next step: integrate Converge payment.");
+    const data = await res.json();
+    console.log("Checkout response:", data);
+
+    // 👉 Redirect to order detail page
+    if (data.quote_id) {
+      window.location.href = `order.html?quote_id=${data.quote_id}`;
+    } else {
+      alert("Checkout succeeded but no quote_id was returned.");
+    }
   } catch (err) {
-    console.error("Error calling /checkout/start:", err);
-    alert("Network error starting checkout. See console for details.");
+    console.error("Error during checkout:", err);
+    alert("Error during checkout. See console for details.");
   }
 }
+
 
 
 function zoomToField(fieldId) {
@@ -779,9 +826,47 @@ function requestQuote() {
   alert('Quote request feature - would submit to sales team');
 }
 
-loadFields();
-loadGrowerInfo();
-console.log('TerraNet Dashboard Initialized');
+// ---------------- RESET LOGIC ----------------
+(function init() {
+  const reset = getQueryParam("reset");
+
+  if (reset === "1") {
+    console.log("Reset flag detected → clearing cached data");
+
+    // Clear localStorage
+    localStorage.removeItem("terranet_fields");
+    localStorage.removeItem("terranet_grower");
+
+    // Clear memory
+    APP.fields = [];
+    APP.growerInfo = {
+      name: "",
+      email: "",
+      farmName: "",
+      phone: "",
+      notes: ""
+    };
+
+    // Clear grower input fields
+    const fields = ["grower-name", "grower-email", "grower-farm", "grower-phone", "grower-notes"];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+
+    // Re-render empty UI
+    if (typeof renderFields === "function") renderFields();
+
+    console.log("Fresh quote builder initialized.");
+
+  } else {
+    console.log("Normal load → restoring cached grower + fields");
+    loadFields();
+    loadGrowerInfo();
+    fetchQuotePreview();   // keep pricing up to date
+  }
+})();
+
 
 
     // --- Pricing integration with backend API ---
@@ -793,6 +878,32 @@ console.log('TerraNet Dashboard Initialized');
     fetchQuotePreview();
   }
 }
+
+function collectGrowerInfo() {
+  const grower = {
+    name: (document.getElementById('grower-name')?.value || '').trim(),
+    email: (document.getElementById('grower-email')?.value || '').trim(),
+    farmName: (document.getElementById('grower-farm')?.value || '').trim(),
+    phone: (document.getElementById('grower-phone')?.value || '').trim(),
+    notes: (document.getElementById('grower-notes')?.value || '').trim(),
+
+    address1: (document.getElementById('grower-address1')?.value || '').trim(),
+    address2: (document.getElementById('grower-address2')?.value || '').trim(),
+    city: (document.getElementById('grower-city')?.value || '').trim(),
+    state: (document.getElementById('grower-state')?.value || '').trim(),
+    postalCode: (document.getElementById('grower-zip')?.value || '').trim(),
+    country: (document.getElementById('grower-country')?.value || '').trim(),
+  };
+
+  try {
+    localStorage.setItem('terranet_grower', JSON.stringify(grower));
+  } catch (e) {
+    console.warn('Failed to save grower info to localStorage:', e);
+  }
+
+  return grower;
+}
+
 async function fetchQuotePreview() {
   // If there are no fields, nothing to price yet
   if (!APP.fields || APP.fields.length === 0) {

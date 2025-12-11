@@ -1,0 +1,2 @@
+quote_id,grower_name,grower_email,farm_name,phone,notes,address1,address2,city,state,postal_code,country,program_type,field_count,total_acres,total_annual_cost
+q_John_Smith_1765414350,John Smith,emcgregor@upterra.co,Smith Farms,555 123 4567,Nothing of note,10 Liberty Ship Way,#130,Sausalito,CA,94965,USA,SPRAYER_PLUS_REMOTE,1,209.8,1049.0

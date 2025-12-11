@@ -99,6 +99,8 @@
     return params.get(key);
   }
 
+  let CURRENT_ORDER = null;
+
   async function loadOrder() {
     const quoteId = getQueryParam("quote_id");
     if (!quoteId) {
@@ -125,19 +127,31 @@
   }
 
   function renderOrder(order) {
+    CURRENT_ORDER = order;  // ✅ store the actual order object
+
     const div = document.getElementById("order-container");
 
     div.innerHTML = `
       <div class="card">
-        <div class="section-title">Grower Information</div>
-        <div class="label">Name:</div> <div class="value">${order.grower.name}</div>
-        <div class="label">Email:</div> <div class="value">${order.grower.email}</div>
-        <div class="label">Farm / Operation:</div> <div class="value">${order.grower.farmName || ''}</div>
-        <div class="label">Phone:</div> <div class="value">${order.grower.phone || ''}</div>
-        <div class="label">Notes:</div> <div class="value">${order.grower.notes || ''}</div>
+        <div class="section-title">Grower</div>
+        <div class="label">Name</div> <div class="value">${order.grower.name}</div>
+        <div class="label">Email</div> <div class="value">${order.grower.email}</div>
+        <div class="label">Farm</div> <div class="value">${order.grower.farmName || ''}</div>
+        <div class="label">Phone</div> <div class="value">${order.grower.phone || ''}</div>
+        <div class="label">Notes</div> <div class="value">${order.grower.notes || ''}</div>
+
+        <div style="margin-top:12px;">
+          <button
+            class="export-btn"
+            onclick="startNewQuoteForGrower()"
+            style="background:#2563eb;color:white;border-color:#2563eb;"
+          >
+            Start new quote for this grower
+          </button>
+        </div>
       </div>
 
-            <div class="card">
+      <div class="card">
         <div class="section-title">Order Summary</div>
         <div class="label">Program:</div> <div class="value">${order.program_type}</div>
         <div class="label">Created:</div> <div class="value">${new Date(order.created_at).toLocaleString()}</div>
@@ -154,7 +168,6 @@
           </button>
         </div>
       </div>
-
 
       <div class="card">
         <div class="section-title">Fields</div>
@@ -192,16 +205,13 @@
           fields.geojson
         </button>
         <button class="export-btn" onclick="triggerOnboarding()">
-            Generate Onboarding Packet (ZIP)
-        </button>
-        <button class="export-btn" onclick="downloadExport('onboarding_packet.zip')">
-            onboarding_packet.zip
+          onboarding_packet.zip
         </button>
       </div>
-
     `;
   }
-    async function updateStatus() {
+
+  async function updateStatus() {
     const quoteId = getQueryParam("quote_id");
     if (!quoteId) return;
 
@@ -228,17 +238,19 @@
       alert("Error updating status. See console.");
     }
   }
+
   function getQuoteId() {
     return getQueryParam("quote_id");
   }
+
   function downloadExport(filename) {
     const quoteId = getQuoteId();
     if (!quoteId) return;
 
     const url = `http://127.0.0.1:8000/orders/${quoteId}/download/${filename}`;
-    // Redirecting the browser triggers the download
     window.location.href = url;
   }
+
   async function triggerOnboarding() {
     const quoteId = getQuoteId();
     if (!quoteId) return;
@@ -258,8 +270,6 @@
       console.log("Onboarding packet generated:", data);
 
       alert("Onboarding packet generated successfully.");
-
-      // Automatically download zip if desired:
       downloadExport("onboarding_packet.zip");
 
     } catch (err) {
@@ -267,12 +277,46 @@
       alert("Error generating onboarding packet. See console.");
     }
   }
+
   function goBack() {
     window.location.href = "dashboard.html";
   }
 
+  function startNewQuoteForGrower() {
+    if (!CURRENT_ORDER || !CURRENT_ORDER.grower) {
+      alert("No grower info found for this order.");
+      return;
+    }
+
+    const grower = CURRENT_ORDER.grower;
+
+    try {
+      localStorage.setItem("terranet_grower", JSON.stringify({
+        name: grower.name || "",
+        email: grower.email || "",
+        farmName: grower.farmName || "",
+        phone: grower.phone || "",
+        notes: grower.notes || ""
+      }));
+
+      // start with fresh fields
+      localStorage.removeItem("terranet_fields");
+
+      if (CURRENT_ORDER.program_type) {
+        localStorage.setItem("terranet_program_type", CURRENT_ORDER.program_type);
+      }
+
+    } catch (e) {
+      console.error("Failed to write grower info to localStorage:", e);
+    }
+
+    // No reset=1 → TCV_V1 will restore grower but see no fields
+    window.location.href = "TCV_V1.html";
+  }
+
   loadOrder();
 </script>
+
 
 </body>
 </html>

@@ -1,0 +1,18 @@
+Quote ID: q_John_Smith_1765414350
+Grower: John Smith (emcgregor@upterra.co)
+Farm: Smith Farms
+Program: SPRAYER_PLUS_REMOTE
+Fields: 1
+Total Acres: 209.8
+Total Annual Cost: 1049.0
+
+Notes:
+Nothing of note
+
+Included files:
+- checkout_start.json
+- client_info.csv
+- fields.csv
+- fields.geojson
+- fields_geojson/*.geojson
+- summary.txt

@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "field_id": "field_1765411361902",
+        "name": "Afrik",
+        "acres": 130.6,
+        "crop_program": "corn"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25.117149,
+              0.464768
+            ],
+            [
+              25.117106,
+              0.469446
+            ],
+            [
+              25.126247,
+              0.469403
+            ],
+            [
+              25.126247,
+              0.464725
+            ],
+            [
+              25.117149,
+              0.464768
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

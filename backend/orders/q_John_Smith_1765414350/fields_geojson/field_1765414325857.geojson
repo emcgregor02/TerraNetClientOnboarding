@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "field_id": "field_1765414325857",
+        "name": "test",
+        "acres": 209.8,
+        "crop_program": "corn"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -119.780331,
+              36.349214
+            ],
+            [
+              -119.780331,
+              36.356817
+            ],
+            [
+              -119.771318,
+              36.356817
+            ],
+            [
+              -119.771318,
+              36.349214
+            ],
+            [
+              -119.780331,
+              36.349214
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

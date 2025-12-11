@@ -1,0 +1,58 @@
+{
+  "grower": {
+    "name": "John Smith",
+    "email": "emcgregor@upterra.co",
+    "farmName": "Smith Farms",
+    "phone": "555 123 4567",
+    "notes": "Nothing of note",
+    "address1": "10 Liberty Ship Way",
+    "address2": "#130",
+    "city": "Sausalito",
+    "state": "CA",
+    "postalCode": "94965",
+    "country": "USA"
+  },
+  "program_type": "SPRAYER_PLUS_REMOTE",
+  "fields": [
+    {
+      "id": "field_1765414325857",
+      "name": "test",
+      "acres": 209.8,
+      "geometry": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -119.780331,
+                36.349214
+              ],
+              [
+                -119.780331,
+                36.356817
+              ],
+              [
+                -119.771318,
+                36.356817
+              ],
+              [
+                -119.771318,
+                36.349214
+              ],
+              [
+                -119.780331,
+                36.349214
+              ]
+            ]
+          ]
+        }
+      },
+      "cropProgram": "corn",
+      "pestPrograms": [],
+      "tier": "basic",
+      "annualCost": 1049
+    }
+  ]
+}

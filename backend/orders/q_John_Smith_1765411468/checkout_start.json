@@ -1,0 +1,59 @@
+{
+  "grower": {
+    "name": "John Smith",
+    "email": "emcgregor@upterra.co",
+    "farmName": "Congo 1",
+    "phone": "555 123 4567",
+    "notes": "Looking for discounts!",
+    "address1": null,
+    "address2": null,
+    "city": null,
+    "state": null,
+    "postalCode": null,
+    "country": null
+  },
+  "program_type": "REMOTE_ONLY",
+  "fields": [
+    {
+      "id": "field_1765411361902",
+      "name": "Afrik",
+      "acres": 130.6,
+      "geometry": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                25.117149,
+                0.464768
+              ],
+              [
+                25.117106,
+                0.469446
+              ],
+              [
+                25.126247,
+                0.469403
+              ],
+              [
+                25.126247,
+                0.464725
+              ],
+              [
+                25.117149,
+                0.464768
+              ]
+            ]
+          ]
+        }
+      },
+      "cropProgram": "corn",
+      "pestPrograms": [],
+      "tier": "basic",
+      "annualCost": 914.1999999999999,
+      "notes": "sod marshland"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+Quote ID: q_John_Smith_1765411468
+Grower: John Smith (emcgregor@upterra.co)
+Farm: Congo 1
+Program: REMOTE_ONLY
+Fields: 1
+Total Acres: 130.6
+Total Annual Cost: 914.2
+
+Notes:
+Looking for discounts!
+
+Included files:
+- checkout_start.json
+- client_info.csv
+- fields.csv
+- fields.geojson
+- fields_geojson/*.geojson
+- summary.txt
