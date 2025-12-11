@@ -12,10 +12,10 @@ Dev Team Instructions
 1. Clone the Project
 
 ```bash
-git clone https://github.com/emcgregor02/TerraNetClientOnboarding.git
+1. git clone https://github.com/emcgregor02/TerraNetClientOnboarding.git
 cd TerraNetClientOnboarding
 
-🐍 2. Create & Activate a Python Virtual Environment
+2. Create & Activate a Python Virtual Environment
 macOS / Linux:
 python3 -m venv venv
 source venv/bin/activate
@@ -24,12 +24,12 @@ Windows (PowerShell):
 python -m venv venv
 .\venv\Scripts\activate
 
-📦 3. Install Backend Dependencies
+3. Install Backend Dependencies
 pip install fastapi uvicorn pydantic python-dotenv
 Or, if a requirements file exists:
 pip install -r requirements.txt
 
-▶️ 4. Run the Backend Server
+4. Run the Backend Server
 cd backend
 uvicorn app.main:app --reload
 You should see:
@@ -38,13 +38,13 @@ Test the API:
 Health check → http://127.0.0.1:8000/health
 API docs → http://127.0.0.1:8000/docs
 
-🌐 5. Open the Frontend
+5. Open the Frontend
 
 The frontend is a static HTML file. Open it directly in your browser:
 TerraNetClientOnboarding/frontend/TCV_V1.html
 Just double-click the file or open from within PyCharm.
 
-🔄 6. How the System Works
+6. How the System Works
 
 User draws fields on the map
 Frontend stores fields in localStorage
@@ -57,7 +57,7 @@ total_due_first_year
 per-field line items
 Frontend updates the summary using backend data.
 
-⚠️ 7. CORS Configuration
+7. CORS Configuration
 
 The backend allows requests from local development environments:
 
@@ -69,30 +69,30 @@ origins = [
 
 If you open the frontend using a different localhost port, add it to origins.
 
-🩺 8. Troubleshooting
-❌ “Refused to connect”
+8. Troubleshooting
+“Refused to connect”
 
 Backend is not running. Start it with:
 
 uvicorn app.main:app --reload
 
-❌ “Blocked by CORS policy”
+“Blocked by CORS policy”
 
 Add your frontend origin to origins in main.py.
 
-❌ “ModuleNotFoundError”
+“ModuleNotFoundError”
 
 Upgrade tooling:
 
 pip install --upgrade pip setuptools wheel
 
-❌ uvicorn[standard] fails on macOS
+uvicorn[standard] fails on macOS
 
 Use:
 
 pip install uvicorn
 
-🧱 9. Project Structure
+9. Project Structure
 TerraNetClientOnboarding/
 │
 ├── backend/
